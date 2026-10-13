@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CodeBlock } from "@/components/ui/code-block";
@@ -28,8 +29,9 @@ interface DeliverySummary {
   endpointUrl: string;
 }
 
-export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+function EventDetailContent() {
+  const routeParams = useParams<{ id: string }>();
+  const id = routeParams?.id;
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [deliveries, setDeliveries] = useState<DeliverySummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -196,5 +198,19 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         )}
       </main>
     </div>
+  );
+}
+
+export default function EventDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] text-xs text-zinc-500">
+          Loading event details...
+        </div>
+      }
+    >
+      <EventDetailContent />
+    </Suspense>
   );
 }

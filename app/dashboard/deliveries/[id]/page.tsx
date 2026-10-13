@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { StatusBadge, DeliveryStatus } from "@/components/ui/status-badge";
 import { CodeBlock } from "@/components/ui/code-block";
@@ -47,12 +48,9 @@ interface DeliveryDetail {
   attempts: DeliveryAttempt[];
 }
 
-export default function DeliveryInspectorPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+function DeliveryInspectorContent() {
+  const routeParams = useParams<{ id: string }>();
+  const id = routeParams?.id;
   const [data, setData] = useState<DeliveryDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -332,5 +330,19 @@ export default function DeliveryInspectorPage({
         )}
       </main>
     </div>
+  );
+}
+
+export default function DeliveryInspectorPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] text-xs text-zinc-500">
+          Loading delivery details...
+        </div>
+      }
+    >
+      <DeliveryInspectorContent />
+    </Suspense>
   );
 }
