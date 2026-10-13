@@ -9,10 +9,20 @@ let queueInstance: Queue<DeliveryJobData> | null = null;
 
 export function getRedisConnection(): Redis {
   if (!redisInstance) {
+    const isTls = env.REDIS_URL.startsWith("rediss://");
+
     redisInstance = new Redis(env.REDIS_URL, {
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
       lazyConnect: true,
+      connectTimeout: 10000,
+      ...(isTls
+        ? {
+          tls: {
+            rejectUnauthorized: false,
+          },
+        }
+        : {}),
       retryStrategy(times) {
         if (process.env.NODE_ENV === "test") {
           return null;

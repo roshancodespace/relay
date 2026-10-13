@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { DashboardHeader } from "@/components/dashboard/header";
+import { Button, IconButton } from "@/components/ui/button";
 import {
   Plus,
   Trash2,
   Copy,
   Check,
-  RotateCw,
-  CheckCircle2,
+  X,
 } from "lucide-react";
 
 interface ApiKeyItem {
@@ -25,8 +25,16 @@ export default function ApiKeysPage() {
 
   const [keyName, setKeyName] = useState("Production Ingest Key");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedRawKey, setGeneratedRawKey] = useState<string | null>(null);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
+  const [createdKeyData, setCreatedKeyData] = useState<{
+    rawKey: string;
+    name: string;
+    keyPrefix: string;
+  } | null>(null);
+
   const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedPrefixId, setCopiedPrefixId] = useState<string | null>(null);
 
   const fetchKeys = useCallback(async () => {
     setIsLoading(true);
@@ -48,28 +56,45 @@ export default function ApiKeysPage() {
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!keyName.trim() || isGenerating) return;
+
     setIsGenerating(true);
+    setGenerateError(null);
+
     try {
       const res = await fetch("/api/v1/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: keyName.trim() || "API Key" }),
+        body: JSON.stringify({ name: keyName.trim() }),
       });
 
       const data = await res.json();
-      if (res.ok) {
-        setGeneratedRawKey(data.rawKey);
+      if (!res.ok) {
+        setGenerateError(data.error || "Failed to generate key");
+        return;
+      }
+
+      const rawKey = data.rawKey || data.key?.rawKey;
+      if (rawKey) {
+        setCreatedKeyData({
+          rawKey,
+          name: data.key?.name || keyName.trim(),
+          keyPrefix: data.key?.keyPrefix || `${rawKey.slice(0, 13)}...`,
+        });
         setKeyName("");
         fetchKeys();
+      } else {
+        setGenerateError("Failed to retrieve generated key");
       }
-    } catch {
+    } catch (err) {
+      setGenerateError((err as Error).message || "Network error");
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleRevoke = async (id: string) => {
-    if (!confirm("Are you sure you want to revoke this API key? External requests using this key will be rejected.")) {
+    if (!confirm("Are you sure you want to revoke this API key? Requests using it will be rejected.")) {
       return;
     }
 
@@ -85,13 +110,35 @@ export default function ApiKeysPage() {
   };
 
   const handleCopyRawKey = async () => {
-    if (!generatedRawKey) return;
+    if (!createdKeyData) return;
     try {
-      await navigator.clipboard.writeText(generatedRawKey);
+      await navigator.clipboard.writeText(createdKeyData.rawKey);
       setCopiedKey(true);
       setTimeout(() => setCopiedKey(false), 2000);
     } catch {
     }
+  };
+
+
+  const handleDismissCreatedKey = () => {
+    if (!copiedKey && !confirm("You haven't copied this key yet. Once dismissed, it cannot be recovered. Dismiss anyway?")) {
+      return;
+    }
+    setCreatedKeyData(null);
+  };
+
+  const handleCopyPrefix = async (id: string, prefix: string) => {
+    try {
+      await navigator.clipboard.writeText(prefix);
+      setCopiedPrefixId(id);
+      setTimeout(() => setCopiedPrefixId(null), 2000);
+    } catch {
+    }
+  };
+
+  const formatKeyPrefix = (prefix: string) => {
+    if (!prefix) return "";
+    return prefix.endsWith("...") ? prefix : `${prefix}...`;
   };
 
   return (
@@ -105,46 +152,11 @@ export default function ApiKeysPage() {
 
       <main className="p-6 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
         <div className="text-xs text-zinc-500 dark:text-zinc-400 pb-4 border-b border-[#e7e7e5] dark:border-white/[0.08]">
-          API keys are hashed with <strong>SHA-256</strong> before storage. Raw secret keys are displayed only once at creation and cannot be recovered.
+          API keys are hashed with <strong>SHA-256</strong> before storage. Secret keys are displayed only once upon creation and cannot be recovered.
         </div>
 
-        {generatedRawKey && (
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-md space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>New Secret API Key Generated</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleCopyRawKey}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-100 dark:bg-emerald-500/20 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-medium transition-colors"
-              >
-                {copiedKey ? (
-                  <>
-                    <Check className="h-3 w-3" />
-                    <span>Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3 w-3" />
-                    <span>Copy Secret Key</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="bg-white dark:bg-[#09090b] border border-emerald-200 dark:border-emerald-500/20 p-2.5 rounded font-mono text-xs text-emerald-700 dark:text-emerald-400 select-all break-all">
-              {generatedRawKey}
-            </div>
-
-            <p className="text-xs text-zinc-600 dark:text-zinc-400">
-              Save this secret key securely in your environment variables. Relay never stores the unhashed token.
-            </p>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          {/* Active Keys Column */}
           <section className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#e7e7e5] dark:border-white/[0.08]">
               <div>
@@ -160,6 +172,40 @@ export default function ApiKeysPage() {
               </span>
             </div>
 
+            {/* One-time key display */}
+            {createdKeyData && (
+              <div className="flex items-center justify-between gap-3 py-2 text-xs font-mono border-b border-emerald-500/30 dark:border-emerald-500/20">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-sans text-xs font-medium shrink-0">
+                    Shown only once:
+                  </span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-medium truncate select-all">
+                    {createdKeyData.rawKey}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <IconButton
+                    variant={copiedKey ? "success" : "primary"}
+                    size="sm"
+                    icon={copiedKey ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    onClick={handleCopyRawKey}
+                    title={copiedKey ? "Copied!" : "Copy secret key"}
+                    aria-label="Copy secret key"
+                  />
+
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
+                    icon={<X className="h-3.5 w-3.5" />}
+                    onClick={handleDismissCreatedKey}
+                    title="Dismiss"
+                    aria-label="Dismiss"
+                  />
+                </div>
+              </div>
+            )}
+
             {keys.length === 0 && !isLoading ? (
               <div className="py-12 text-center text-zinc-500 dark:text-zinc-400 space-y-2">
                 <p className="text-sm font-medium text-[#111111] dark:text-white">No active API keys found</p>
@@ -169,42 +215,62 @@ export default function ApiKeysPage() {
               </div>
             ) : (
               <div className="divide-y divide-[#e7e7e5] dark:divide-white/[0.06]">
-                {keys.map((k) => (
-                  <div key={k.id} className="py-4 flex items-center justify-between gap-4">
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-semibold text-[#111111] dark:text-white">
-                          {k.name}
-                        </span>
-                        <code className="text-xs font-mono text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">
-                          {k.keyPrefix}...
-                        </code>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-zinc-400 dark:text-zinc-500">
-                        <span>Created {new Date(k.createdAt).toLocaleDateString()}</span>
-                        <span>•</span>
-                        <span>
-                          {k.lastUsedAt
-                            ? `Last used ${new Date(k.lastUsedAt).toLocaleDateString()}`
-                            : "Never used"}
-                        </span>
-                      </div>
-                    </div>
+                {keys.map((k) => {
+                  const displayPrefix = formatKeyPrefix(k.keyPrefix);
+                  const isCopied = copiedPrefixId === k.id;
 
-                    <button
-                      type="button"
-                      onClick={() => handleRevoke(k.id)}
-                      className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                      title="Revoke key"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
+                  return (
+                    <div key={k.id} className="py-4 flex items-center justify-between gap-4">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xs font-semibold text-[#111111] dark:text-white">
+                            {k.name}
+                          </span>
+                          <div className="inline-flex items-center gap-1.5 bg-zinc-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded">
+                            <code className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
+                              {displayPrefix}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyPrefix(k.id, displayPrefix)}
+                              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors p-0.5"
+                              title="Copy prefix"
+                            >
+                              {isCopied ? (
+                                <Check className="h-3 w-3 text-emerald-500" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-zinc-400 dark:text-zinc-500">
+                          <span>Created {new Date(k.createdAt).toLocaleDateString()}</span>
+                          <span>•</span>
+                          <span>
+                            {k.lastUsedAt
+                              ? `Last used ${new Date(k.lastUsedAt).toLocaleDateString()}`
+                              : "Never used"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <IconButton
+                        variant="danger"
+                        size="sm"
+                        icon={<Trash2 className="h-3.5 w-3.5" />}
+                        onClick={() => handleRevoke(k.id)}
+                        title="Revoke key"
+                        aria-label="Revoke key"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>
 
+          {/* Create Key Column */}
           <section className="space-y-4">
             <div className="pb-2 border-b border-[#e7e7e5] dark:border-white/[0.08]">
               <h2 className="text-sm font-semibold tracking-tight text-[#111111] dark:text-white">
@@ -226,22 +292,28 @@ export default function ApiKeysPage() {
                   value={keyName}
                   onChange={(e) => setKeyName(e.target.value)}
                   placeholder="e.g. Production Backend"
-                  className="w-full bg-[#fafaf9] dark:bg-[#09090b] border border-[#e7e7e5] dark:border-white/[0.08] rounded-md px-3 py-2 text-xs text-[#111111] dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500"
+                  disabled={isGenerating}
+                  className="w-full bg-[#fafaf9] dark:bg-[#09090b] border border-[#e7e7e5] dark:border-white/[0.08] rounded-md px-3 py-2 text-xs text-[#111111] dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-500 disabled:opacity-50"
                 />
               </div>
 
-              <button
+              {generateError && (
+                <div className="p-2 rounded bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-xs">
+                  {generateError}
+                </div>
+              )}
+
+              <Button
                 type="submit"
-                disabled={isGenerating}
-                className="w-full h-8 rounded-md bg-[#111111] dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black text-xs font-medium flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                variant="primary"
+                size="md"
+                isLoading={isGenerating}
+                icon={<Plus className="h-3.5 w-3.5" />}
+                disabled={isGenerating || !keyName.trim()}
+                className="w-full"
               >
-                {isGenerating ? (
-                  <RotateCw className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Plus className="h-3.5 w-3.5" />
-                )}
-                <span>Generate Key</span>
-              </button>
+                {isGenerating ? "Generating..." : "Generate Key"}
+              </Button>
             </form>
           </section>
         </div>

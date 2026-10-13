@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     .insert(apiKeys)
     .values({
       projectId: auth.project.id,
-      name: body.name || "API Key",
+      name: body.name?.trim() || "API Key",
       keyPrefix: generated.keyPrefix,
       keyHash: generated.keyHash,
     })
