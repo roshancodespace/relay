@@ -72,6 +72,12 @@ export default function LandingPage() {
             <a href="#guarantees" className="hover:text-black dark:hover:text-white transition-colors">
               Guarantees
             </a>
+            <Link href="/docs" className="hover:text-black dark:hover:text-white transition-colors">
+              Docs
+            </Link>
+            <Link href="/docs/api-reference" className="hover:text-black dark:hover:text-white transition-colors">
+              API
+            </Link>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -128,10 +134,16 @@ export default function LandingPage() {
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
               <Link
-                href="/login"
+                href="/docs"
                 className="h-9 px-4 rounded-md border border-[#e7e7e5] dark:border-white/[0.08] hover:bg-zinc-100 dark:hover:bg-white/[0.04] text-[#111111] dark:text-white text-xs transition-colors inline-flex items-center"
               >
-                Sign In
+                Documentation
+              </Link>
+              <Link
+                href="/docs/api-reference"
+                className="h-9 px-4 rounded-md hover:bg-zinc-100 dark:hover:bg-white/[0.04] text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white text-xs transition-colors inline-flex items-center"
+              >
+                API Reference
               </Link>
             </div>
           </div>
@@ -295,6 +307,12 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-4 text-xs">
+            <Link href="/docs" className="hover:text-black dark:hover:text-white transition-colors">
+              Documentation
+            </Link>
+            <Link href="/docs/api-reference" className="hover:text-black dark:hover:text-white transition-colors">
+              API Reference
+            </Link>
             <Link href="/login" className="hover:text-black dark:hover:text-white transition-colors">
               Sign In
             </Link>

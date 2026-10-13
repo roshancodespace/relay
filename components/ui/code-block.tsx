@@ -9,6 +9,8 @@ interface CodeBlockProps {
   title?: string;
   maxHeight?: string;
   showLineNumbers?: boolean;
+  hideHeader?: boolean;
+  borderless?: boolean;
 }
 
 type TokenType =
@@ -176,6 +178,8 @@ export function CodeBlock({
   title,
   maxHeight,
   showLineNumbers = true,
+  hideHeader = false,
+  borderless = false,
 }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
@@ -192,41 +196,43 @@ export function CodeBlock({
 
   return (
     <div className="w-full space-y-1.5 font-sans">
-      <div className="flex items-center justify-between text-xs pb-1">
-        <div className="flex items-center gap-2">
-          {language && (
-            <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-              {language}
-            </span>
-          )}
-          {title && (
-            <span className="text-zinc-500 dark:text-zinc-400 text-xs">
-              {title}
-            </span>
-          )}
+      {!hideHeader && (
+        <div className="flex items-center justify-between text-xs pb-1">
+          <div className="flex items-center gap-2">
+            {language && (
+              <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                {language}
+              </span>
+            )}
+            {title && (
+              <span className="text-zinc-500 dark:text-zinc-400 text-xs">
+                {title}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleCopy}
+            type="button"
+            className="flex items-center gap-1 text-xs text-zinc-400 hover:text-black dark:hover:text-white transition-colors"
+            title="Copy code"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3 w-3 text-emerald-500" />
+                <span className="text-emerald-500 text-[11px]">Copied</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                <span className="text-[11px]">Copy</span>
+              </>
+            )}
+          </button>
         </div>
-        <button
-          onClick={handleCopy}
-          type="button"
-          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-black dark:hover:text-white transition-colors"
-          title="Copy code"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3 w-3 text-emerald-500" />
-              <span className="text-emerald-500 text-[11px]">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy className="h-3 w-3" />
-              <span className="text-[11px]">Copy</span>
-            </>
-          )}
-        </button>
-      </div>
+      )}
 
       <div
-        className={`py-3 border-y border-[#e7e7e5] dark:border-white/[0.08] font-mono text-[12px] leading-relaxed overflow-x-auto ${maxHeight || ""}`}
+        className={`py-3 ${borderless ? "" : "border-y border-[#e7e7e5] dark:border-white/[0.08]"} font-mono text-[12px] leading-relaxed overflow-x-auto ${maxHeight || ""}`}
       >
         <pre className="whitespace-pre">
           {lines.map((line, lineIndex) => {
