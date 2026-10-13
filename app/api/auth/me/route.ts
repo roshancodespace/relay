@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedUser } from "@/domain/auth/current-user";
+import { getAuthenticatedProject } from "@/domain/auth/current-user";
 import { db } from "@/db";
 import { projects } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 
+/**
+ * GET /api/auth/me - Retrieve authenticated session, active project, and workspace list
+ */
 export async function GET() {
-  const user = await getAuthenticatedUser();
-  if (!user) {
-    return NextResponse.json({ user: null, projects: [] });
+  const auth = await getAuthenticatedProject();
+  if (!auth) {
+    return NextResponse.json({ user: null, project: null, projects: [] });
   }
 
   const userProjects = await db
@@ -17,13 +20,18 @@ export async function GET() {
       createdAt: projects.createdAt,
     })
     .from(projects)
-    .where(eq(projects.userId, user.id));
+    .where(eq(projects.userId, auth.user.id))
+    .orderBy(asc(projects.createdAt));
 
   return NextResponse.json({
     user: {
-      id: user.id,
-      email: user.email,
-      createdAt: user.createdAt,
+      id: auth.user.id,
+      email: auth.user.email,
+      createdAt: auth.user.createdAt,
+    },
+    project: {
+      id: auth.project.id,
+      name: auth.project.name,
     },
     projects: userProjects,
   });

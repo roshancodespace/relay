@@ -14,6 +14,9 @@ const registerSchema = z.object({
   projectName: z.string().min(1).max(100).optional(),
 });
 
+/**
+ * POST /api/auth/register - Register user and initial project
+ */
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {

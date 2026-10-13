@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * PATCH /api/v1/endpoints?id={id} - Update a webhook endpoint
+ * PATCH /api/v1/endpoints - Update a webhook endpoint
  */
 export async function PATCH(request: NextRequest) {
   const auth = await getAuthenticatedProject();
@@ -97,7 +97,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 /**
- * DELETE /api/v1/endpoints?id={id} - Delete a webhook endpoint for the authenticated project
+ * DELETE /api/v1/endpoints - Delete a webhook endpoint for the authenticated project
  */
 export async function DELETE(request: NextRequest) {
   const auth = await getAuthenticatedProject();

@@ -5,6 +5,7 @@ import { verifySessionToken } from "./session";
 import { eq, and } from "drizzle-orm";
 
 export const SESSION_COOKIE_NAME = "relay_session";
+export const ACTIVE_PROJECT_COOKIE_NAME = "relay_active_project";
 
 /**
  * Retrieves the currently authenticated user based on the signed session cookie.
@@ -44,20 +45,26 @@ export async function getAuthenticatedProject(projectId?: string): Promise<{ use
     return null;
   }
 
+  const cookieStore = await cookies();
+  const targetId = projectId || cookieStore.get(ACTIVE_PROJECT_COOKIE_NAME)?.value;
+
   let project: Project | undefined;
 
-  if (projectId) {
+  if (targetId) {
     const [matched] = await db
       .select()
       .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
+      .where(and(eq(projects.id, targetId), eq(projects.userId, user.id)))
       .limit(1);
     project = matched;
-  } else {
+  }
+
+  if (!project) {
     const [firstProject] = await db
       .select()
       .from(projects)
       .where(eq(projects.userId, user.id))
+      .orderBy(projects.createdAt)
       .limit(1);
     project = firstProject;
   }

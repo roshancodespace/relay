@@ -9,10 +9,13 @@ import { createSessionToken } from "@/domain/auth/session";
 import { SESSION_COOKIE_NAME } from "@/domain/auth/current-user";
 
 const loginSchema = z.object({
-  email: z.string().email("Please provide a valid email address."),
+  email: z.email("Please provide a valid email address."),
   password: z.string().min(1, "Password is required."),
 });
 
+/**
+ * POST /api/auth/login - Authenticate user and issue session cookie
+ */
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {

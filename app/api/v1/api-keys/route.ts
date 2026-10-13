@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * DELETE /api/v1/api-keys?id={id} - Revoke an API key for the authenticated project
+ * DELETE /api/v1/api-keys - Revoke an API key for the authenticated project
  */
 export async function DELETE(request: NextRequest) {
   const auth = await getAuthenticatedProject();
