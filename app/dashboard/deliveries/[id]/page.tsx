@@ -99,6 +99,10 @@ function DeliveryInspectorContent() {
     }
   };
 
+  if (!data && isLoading) {
+    return <DeliveryInspectorSkeleton />;
+  }
+
   const selectedAttempt =
     data?.attempts.find((a) => a.id === selectedAttemptId) ||
     data?.attempts[0];
@@ -333,15 +337,49 @@ function DeliveryInspectorContent() {
   );
 }
 
+function DeliveryInspectorSkeleton() {
+  return (
+    <div className="flex-1 flex flex-col font-sans animate-pulse">
+      <header className="sticky top-0 z-20 h-13 px-6 sm:px-8 border-b border-[#e7e7e5] dark:border-white/[0.08] bg-[#fbfbfa]/95 dark:bg-[#09090b]/95 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="h-4 w-28 bg-zinc-200 dark:bg-white/[0.08] rounded" />
+          <div className="h-3 w-40 bg-zinc-200 dark:bg-white/[0.05] rounded hidden md:block" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-24 bg-zinc-200 dark:bg-white/[0.08] rounded-md" />
+        </div>
+      </header>
+
+      <main className="p-6 sm:p-8 space-y-10 max-w-7xl w-full mx-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pb-8 border-b border-[#e7e7e5] dark:border-white/[0.08]">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 w-20 bg-zinc-200 dark:bg-white/[0.05] rounded" />
+              <div className="h-4 w-28 bg-zinc-200 dark:bg-white/[0.08] rounded" />
+              <div className="h-3 w-32 bg-zinc-200 dark:bg-white/[0.04] rounded" />
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          <div className="h-4 w-36 bg-zinc-200 dark:bg-white/[0.08] rounded" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-14 bg-zinc-200/60 dark:bg-white/[0.04] rounded-md" />
+              ))}
+            </div>
+            <div className="md:col-span-2 h-48 bg-zinc-200/60 dark:bg-white/[0.04] rounded-md" />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 export default function DeliveryInspectorPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] text-xs text-zinc-500">
-          Loading delivery details...
-        </div>
-      }
-    >
+    <Suspense fallback={<DeliveryInspectorSkeleton />}>
       <DeliveryInspectorContent />
     </Suspense>
   );
