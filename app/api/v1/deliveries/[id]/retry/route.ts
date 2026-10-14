@@ -40,17 +40,8 @@ export async function POST(
     .where(eq(deliveries.id, deliveryId))
     .returning();
 
-  // Enqueue to BullMQ with in-process fallback for local dev
-  const enqueued = await enqueueDeliveryJob(deliveryId, 0, delivery.attemptsCount + 1);
-  if (process.env.NODE_ENV !== "test" && (!enqueued || process.env.NODE_ENV !== "production")) {
-    import("@/worker/processor")
-      .then(({ processDelivery }) => {
-        processDelivery(deliveryId).catch((e) =>
-          console.error("In-process retry error:", e)
-        );
-      })
-      .catch(() => { });
-  }
+  // Enqueue to BullMQ
+  await enqueueDeliveryJob(deliveryId, 0, delivery.attemptsCount + 1);
 
   return NextResponse.json({
     message: "Manual retry scheduled successfully.",

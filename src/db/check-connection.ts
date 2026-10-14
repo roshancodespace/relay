@@ -9,8 +9,6 @@ async function checkConnection() {
   } catch (error) {
     console.warn("⚠️ Could not connect to PostgreSQL database.");
     console.warn("   Details:", (error as Error).message);
-    console.warn("\nTip: Start PostgreSQL with Docker using:");
-    console.warn("   docker compose up -d postgres\n");
   } finally {
     await pgClient.end();
   }

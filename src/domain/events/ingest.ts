@@ -137,35 +137,11 @@ export async function ingestEvent(
     };
   });
 
-  // Enqueue BullMQ jobs for each delivery (with in-process worker fallback for local development)
+  // Enqueue BullMQ jobs for each delivery
   for (const delivery of result.createdDeliveries) {
-    enqueueDeliveryJob(delivery.id, 0, 1)
-      .then((enqueued) => {
-        if (
-          process.env.NODE_ENV !== "test" &&
-          (!enqueued || process.env.NODE_ENV !== "production")
-        ) {
-          import("@/worker/processor")
-            .then(({ processDelivery }) => {
-              processDelivery(delivery.id).catch((err) =>
-                console.error(`In-process delivery execution error for ${delivery.id}:`, err)
-              );
-            })
-            .catch(() => { });
-        }
-      })
-      .catch((err) => {
-        console.warn(`Could not enqueue delivery ${delivery.id} via BullMQ:`, err);
-        if (process.env.NODE_ENV !== "test") {
-          import("@/worker/processor")
-            .then(({ processDelivery }) => {
-              processDelivery(delivery.id).catch((e) =>
-                console.error(`In-process delivery execution error for ${delivery.id}:`, e)
-              );
-            })
-            .catch(() => { });
-        }
-      });
+    enqueueDeliveryJob(delivery.id, 0, 1).catch((err) => {
+      console.warn(`Could not enqueue delivery ${delivery.id} via BullMQ:`, err);
+    });
   }
 
   return {

@@ -2,6 +2,7 @@ import { sql, or, and, lt, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { deliveries } from "@/db/schema";
 import { enqueueDeliveryJob } from "@/queue/producer";
+import { log } from "./logger";
 
 /**
  * Sweeps PostgreSQL for deliveries that were persisted but never enqueued or missed their retry window.
@@ -28,8 +29,6 @@ export async function recoverPendingDeliveries(): Promise<number> {
       return 0;
     }
 
-    console.log(`[Recovery] Found ${stuckDeliveries.length} un-enqueued or overdue deliveries. Re-enqueuing...`);
-
     let enqueuedCount = 0;
     for (const d of stuckDeliveries) {
       const success = await enqueueDeliveryJob(d.id, 0, d.attemptsCount + 1);
@@ -38,9 +37,13 @@ export async function recoverPendingDeliveries(): Promise<number> {
       }
     }
 
+    if (enqueuedCount > 0) {
+      log.recovery(enqueuedCount);
+    }
+
     return enqueuedCount;
   } catch (error) {
-    console.warn("[Recovery] Error running recovery sweep:", (error as Error).message);
+    log.warn(`Recovery sweep error: ${(error as Error).message}`);
     return 0;
   }
 }

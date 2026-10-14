@@ -4,6 +4,7 @@ import { deliveries, deliveryAttempts, endpoints, events } from "@/db/schema";
 import { dispatchWebhook } from "./dispatcher";
 import { classifyDeliveryOutcome, computeBackoffDelayMs } from "@/domain/deliveries/policy";
 import { enqueueDeliveryJob } from "@/queue/producer";
+import { log } from "./logger";
 
 export interface ProcessDeliveryOptions {
   deliveryId: string;
@@ -26,13 +27,13 @@ export async function processDelivery(deliveryId: string): Promise<void> {
     .limit(1);
 
   if (!delivery) {
-    console.warn(`[Worker] Delivery ${deliveryId} not found in database. Skipping.`);
+    log.skip(deliveryId, "Record not found in database. Skipping.");
     return;
   }
 
   // If already delivered or terminal failed, do not re-process
   if (delivery.status === "delivered") {
-    console.log(`[Worker] Delivery ${deliveryId} is already marked delivered. Skipping.`);
+    log.skip(deliveryId, "Already marked delivered. Skipping.");
     return;
   }
 
@@ -52,7 +53,9 @@ export async function processDelivery(deliveryId: string): Promise<void> {
   const attemptNumber = delivery.attemptsCount + 1;
 
   if (!endpoint || !endpoint.isEnabled) {
-    console.warn(`[Worker] Endpoint ${delivery.endpointId} is disabled or deleted. Marking delivery ${deliveryId} failed.`);
+    const reason = endpoint ? "Endpoint was disabled" : "Endpoint was deleted";
+    log.failed(deliveryId, reason);
+
     await db
       .update(deliveries)
       .set({
@@ -68,18 +71,18 @@ export async function processDelivery(deliveryId: string): Promise<void> {
       attemptNumber,
       statusCode: null,
       responseTimeMs: 0,
-      errorMessage: endpoint ? "Endpoint was disabled." : "Endpoint was deleted.",
+      errorMessage: reason,
     });
 
     return;
   }
 
   if (!event) {
-    console.error(`[Worker] Event ${delivery.eventId} missing for delivery ${deliveryId}.`);
+    log.error(`Event ${delivery.eventId} missing for delivery ${deliveryId}`);
     return;
   }
 
-  console.log(`[Worker] Dispatching delivery ${deliveryId} (Attempt ${attemptNumber}/${delivery.maxAttempts}) to ${endpoint.url}`);
+  log.dispatch(deliveryId, endpoint.url, attemptNumber, delivery.maxAttempts);
 
   // Dispatch HTTP request
   const dispatchResult = await dispatchWebhook({
@@ -110,7 +113,7 @@ export async function processDelivery(deliveryId: string): Promise<void> {
   const outcome = classifyDeliveryOutcome(dispatchResult.statusCode, dispatchResult.errorMessage);
 
   if (outcome.isSuccess) {
-    console.log(`[Worker] Delivery ${deliveryId} succeeded (${outcome.reason}) in ${dispatchResult.responseTimeMs}ms.`);
+    log.success(deliveryId, outcome.reason, dispatchResult.responseTimeMs);
     await db
       .update(deliveries)
       .set({
@@ -132,7 +135,7 @@ export async function processDelivery(deliveryId: string): Promise<void> {
     const delayMs = computeBackoffDelayMs(nextAttempt);
     const nextRetryDate = new Date(Date.now() + delayMs);
 
-    console.log(`[Worker] Delivery ${deliveryId} failed (${outcome.reason}). Scheduling retry attempt ${nextAttempt} in ${Math.round(delayMs / 1000)}s.`);
+    log.retry(deliveryId, nextAttempt, delivery.maxAttempts, delayMs, outcome.reason);
 
     await db
       .update(deliveries)
@@ -146,7 +149,7 @@ export async function processDelivery(deliveryId: string): Promise<void> {
 
     await enqueueDeliveryJob(deliveryId, delayMs, nextAttempt);
   } else {
-    console.log(`[Worker] Delivery ${deliveryId} permanently failed (${outcome.reason}). Max attempts reached or non-retryable error.`);
+    log.failed(deliveryId, `${outcome.reason} (terminal)`);
 
     await db
       .update(deliveries)

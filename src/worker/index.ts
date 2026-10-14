@@ -3,8 +3,11 @@ import { QUEUE_NAME, redisConnection } from "@/queue/client";
 import { processDelivery } from "./processor";
 import { recoverPendingDeliveries } from "./recovery";
 import { pgClient } from "@/db";
+import { log } from "./logger";
 
-console.log("🚀 Starting Relay Webhook Delivery Worker...");
+const CONCURRENCY = 10;
+
+log.banner(QUEUE_NAME, CONCURRENCY);
 
 const worker = new Worker(
   QUEUE_NAME,
@@ -14,20 +17,20 @@ const worker = new Worker(
   },
   {
     connection: redisConnection,
-    concurrency: 10, // Process up to 10 deliveries concurrently per worker
+    concurrency: CONCURRENCY,
   }
 );
 
 worker.on("ready", () => {
-  console.log(`✅ Relay Worker is active and listening on queue '${QUEUE_NAME}'. Concurrency: 10`);
+  log.ready(QUEUE_NAME, CONCURRENCY);
 });
 
 worker.on("failed", (job, err) => {
-  console.error(`❌ Job ${job?.id} failed with error:`, err.message);
+  log.error(`Job ${job?.id} failed`, err);
 });
 
 worker.on("error", (err) => {
-  console.warn("⚠️ Worker queue connection warning:", err.message);
+  log.warn(`Redis connection warning: ${err.message}`);
 });
 
 // Run recovery sweeper immediately and every 60 seconds
@@ -38,17 +41,17 @@ const recoveryInterval = setInterval(() => {
 
 // Graceful shutdown
 async function shutdown(signal: string) {
-  console.log(`\n🛑 Received ${signal}. Gracefully stopping Relay Worker...`);
+  log.shutdown(signal);
   clearInterval(recoveryInterval);
 
   try {
     await worker.close();
     await redisConnection.quit();
     await pgClient.end();
-    console.log("👋 Relay Worker stopped cleanly.");
+    log.info("Worker stopped cleanly");
     process.exit(0);
   } catch (err) {
-    console.error("Error during worker shutdown:", err);
+    log.error("Error during worker shutdown", err);
     process.exit(1);
   }
 }
