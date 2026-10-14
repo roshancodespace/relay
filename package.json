@@ -12,7 +12,9 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:check": "tsx src/db/check-connection.ts",
-    "worker": "tsx src/worker/index.ts",
+    "worker": "tsx watch src/worker/index.ts",
+    "worker:build": "esbuild src/worker/index.ts --bundle --platform=node --target=node22 --format=cjs --outfile=dist/worker.cjs --packages=external",
+    "worker:start": "node dist/worker.cjs",
     "mock-receiver": "tsx scripts/mock-receiver.ts",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -39,6 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.11",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
     "tailwindcss": "^4",

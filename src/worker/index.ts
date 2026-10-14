@@ -1,3 +1,4 @@
+import http from "node:http";
 import { Worker } from "bullmq";
 import { QUEUE_NAME, redisConnection } from "@/queue/client";
 import { processDelivery } from "./processor";
@@ -39,15 +40,44 @@ const recoveryInterval = setInterval(() => {
   recoverPendingDeliveries().catch(() => { });
 }, 60 * 1000);
 
-// Graceful shutdown
+// HTTP health check
+let httpServer: http.Server | null = null;
+const healthPort =
+  process.env.WORKER_PORT ||
+  (process.env.RENDER || process.env.NODE_ENV === "production" ? process.env.PORT : null);
+
+if (healthPort) {
+  const port = parseInt(healthPort, 10);
+  httpServer = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "healthy", service: "relay-worker", queue: QUEUE_NAME }));
+  });
+  httpServer.on("error", (err: any) => {
+    log.warn(`Health check server warning: ${err.message}`);
+  });
+  httpServer.listen(port, () => {
+    log.info(`Health check endpoint active on port ${port}`);
+  });
+}
+
+// Shutdown
+let isShuttingDown = false;
 async function shutdown(signal: string) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
   log.shutdown(signal);
   clearInterval(recoveryInterval);
+  if (httpServer) {
+    httpServer.close();
+  }
 
   try {
     await worker.close();
-    await redisConnection.quit();
-    await pgClient.end();
+    if (["ready", "connecting"].includes(redisConnection.status)) {
+      await redisConnection.quit().catch(() => { });
+    }
+    await pgClient.end().catch(() => { });
     log.info("Worker stopped cleanly");
     process.exit(0);
   } catch (err) {
