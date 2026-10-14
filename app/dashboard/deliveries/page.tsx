@@ -105,7 +105,50 @@ export default function DeliveriesListPage() {
         </div>
 
         <div>
-          {filtered.length === 0 && !isLoading ? (
+          {isLoading ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[#e7e7e5] dark:border-white/[0.08] text-xs text-zinc-500 dark:text-zinc-400">
+                    <th className="py-2.5 px-3 font-medium">Status</th>
+                    <th className="py-2.5 px-3 font-medium">Event</th>
+                    <th className="py-2.5 px-3 font-medium">Destination</th>
+                    <th className="py-2.5 px-3 font-medium text-center">Attempts</th>
+                    <th className="py-2.5 px-3 font-medium">Created</th>
+                    <th className="py-2.5 px-3 font-medium">Next Retry</th>
+                    <th className="py-2.5 px-3 font-medium text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e7e7e5] dark:divide-white/[0.06] text-xs">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="py-3 px-3">
+                        <div className="h-5 w-16 bg-zinc-200/70 dark:bg-white/[0.06] rounded-full" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 w-24 bg-zinc-200/70 dark:bg-white/[0.06] rounded" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 w-40 bg-zinc-200/50 dark:bg-white/[0.04] rounded" />
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <div className="h-4 w-8 bg-zinc-200/50 dark:bg-white/[0.04] rounded mx-auto" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 w-16 bg-zinc-200/50 dark:bg-white/[0.04] rounded" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 w-12 bg-zinc-200/40 dark:bg-white/[0.03] rounded" />
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="h-4 w-12 bg-zinc-200/50 dark:bg-white/[0.04] rounded ml-auto" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="py-16 text-center text-zinc-500 dark:text-zinc-400 space-y-2">
               <p className="text-sm font-medium text-[#111111] dark:text-white">No delivery records found</p>
               <p className="text-xs max-w-sm mx-auto text-zinc-500 dark:text-zinc-400">

@@ -223,3 +223,22 @@ pre,
       rgba(0, 0, 0, 0.08) 80%,
       rgba(0, 0, 0, 0) 100%);
 }
+
+/* Linear progress bar */
+@keyframes shimmer-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  50% {
+    transform: translateX(35%);
+  }
+
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-shimmer-progress {
+  animation: shimmer-progress 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

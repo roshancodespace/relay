@@ -51,6 +51,12 @@ export function DashboardHeader({
 
         {action}
       </div>
+
+      {isRefreshing && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden bg-zinc-200/40 dark:bg-white/[0.05] pointer-events-none">
+          <div className="h-full w-1/2 bg-gradient-to-r from-transparent via-[#ff6600] to-transparent animate-shimmer-progress shadow-[0_0_8px_rgba(255,102,0,0.6)]" />
+        </div>
+      )}
     </header>
   );
 }

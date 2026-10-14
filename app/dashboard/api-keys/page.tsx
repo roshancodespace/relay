@@ -168,7 +168,11 @@ export default function ApiKeysPage() {
                 </p>
               </div>
               <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                {keys.length} active
+                {isLoading ? (
+                  <span className="inline-block h-3.5 w-12 bg-zinc-200/70 dark:bg-white/[0.08] rounded animate-pulse align-middle" />
+                ) : (
+                  `${keys.length} active`
+                )}
               </span>
             </div>
 
@@ -206,7 +210,25 @@ export default function ApiKeysPage() {
               </div>
             )}
 
-            {keys.length === 0 && !isLoading ? (
+            {isLoading ? (
+              <div className="divide-y divide-[#e7e7e5] dark:divide-white/[0.06]">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="py-4 flex items-center justify-between gap-4 animate-pulse">
+                    <div className="space-y-2 min-w-0 flex-1">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-4 w-32 bg-zinc-200/70 dark:bg-white/[0.06] rounded" />
+                        <div className="h-4 w-28 bg-zinc-200/40 dark:bg-white/[0.03] rounded" />
+                      </div>
+                      <div className="h-3 w-40 bg-zinc-200/30 dark:bg-white/[0.03] rounded" />
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <div className="h-7 w-7 bg-zinc-200/40 dark:bg-white/[0.04] rounded" />
+                      <div className="h-7 w-7 bg-zinc-200/40 dark:bg-white/[0.04] rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : keys.length === 0 ? (
               <div className="py-12 text-center text-zinc-500 dark:text-zinc-400 space-y-2">
                 <p className="text-sm font-medium text-[#111111] dark:text-white">No active API keys found</p>
                 <p className="text-xs max-w-sm mx-auto text-zinc-500 dark:text-zinc-400">

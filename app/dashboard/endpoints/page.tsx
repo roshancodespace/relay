@@ -151,11 +151,36 @@ export default function EndpointsPage() {
                 </p>
               </div>
               <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                {endpoints.length} active
+                {isLoading ? (
+                  <span className="inline-block h-3.5 w-12 bg-zinc-200/70 dark:bg-white/[0.08] rounded animate-pulse align-middle" />
+                ) : (
+                  `${endpoints.length} active`
+                )}
               </span>
             </div>
 
-            {endpoints.length === 0 && !isLoading ? (
+            {isLoading ? (
+              <div className="divide-y divide-[#e7e7e5] dark:divide-white/[0.06]">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="py-4 space-y-3 animate-pulse">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-2 min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="h-4 w-48 bg-zinc-200/70 dark:bg-white/[0.06] rounded" />
+                          <div className="h-4 w-14 bg-zinc-200/50 dark:bg-white/[0.04] rounded-full" />
+                        </div>
+                        <div className="h-3 w-64 bg-zinc-200/40 dark:bg-white/[0.03] rounded" />
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <div className="h-7 w-7 bg-zinc-200/40 dark:bg-white/[0.04] rounded" />
+                        <div className="h-7 w-7 bg-zinc-200/40 dark:bg-white/[0.04] rounded" />
+                      </div>
+                    </div>
+                    <div className="h-8 w-full max-w-md bg-zinc-200/30 dark:bg-white/[0.03] rounded-md" />
+                  </div>
+                ))}
+              </div>
+            ) : endpoints.length === 0 ? (
               <div className="py-12 text-center text-zinc-500 dark:text-zinc-400 space-y-2">
                 <p className="text-sm font-medium text-[#111111] dark:text-white">No endpoints registered yet</p>
                 <p className="text-xs max-w-sm mx-auto text-zinc-500 dark:text-zinc-400">
@@ -178,8 +203,8 @@ export default function EndpointsPage() {
                             </span>
                             <span
                               className={`px-2 py-0.5 rounded text-[10px] font-medium ${ep.isEnabled
-                                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500"
+                                ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500"
                                 }`}
                             >
                               {ep.isEnabled ? "Active" : "Disabled"}
