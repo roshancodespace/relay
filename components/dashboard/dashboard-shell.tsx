@@ -1,17 +1,29 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "@/components/auth/auth-context";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Loader2, Menu, X } from "lucide-react";
-import Link from "next/link";
+import { X } from "lucide-react";
 
-function DashboardAuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, project, isLoading } = useAuth();
+interface DashboardShellContextValue {
+  mobileNavOpen: boolean;
+  setMobileNavOpen: (open: boolean) => void;
+  toggleMobileNav: () => void;
+  closeMobileNav: () => void;
+}
+
+const DashboardShellContext = createContext<DashboardShellContextValue | null>(null);
+
+export function useDashboardShell() {
+  return useContext(DashboardShellContext);
+}
+
+function DashboardShellContent({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
   const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -19,142 +31,97 @@ function DashboardAuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden bg-[#fbfbfa] dark:bg-[#09090b] text-[#111111] dark:text-[#f4f4f5] font-sans">
-        {/* Top linear progress bar */}
-        <div className="fixed top-0 left-0 right-0 h-[2.5px] z-50 overflow-hidden pointer-events-none bg-zinc-200/30 dark:bg-white/[0.04]">
-          <div className="h-full w-1/2 bg-gradient-to-r from-transparent via-[#ff6600] to-transparent animate-shimmer-progress shadow-[0_0_10px_rgba(255,102,0,0.6)]" />
-        </div>
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
-        {/* Sidebar Skeleton (hidden on mobile, visible on md+) */}
-        <aside className="hidden md:flex w-56 shrink-0 border-r border-[#e7e7e5] dark:border-white/[0.08] bg-[#fafaf9] dark:bg-[#09090b] flex-col justify-between h-screen p-4">
-          <div className="space-y-5">
-            <div className="flex items-center justify-between px-1">
-              <div className="h-4 w-14 bg-zinc-200 dark:bg-white/[0.08] rounded animate-pulse" />
-            </div>
+  useEffect(() => {
+    if (!mobileNavOpen) return;
 
-            {/* Project selector skeleton */}
-            <div className="h-8 w-full bg-zinc-200/50 dark:bg-white/[0.04] rounded-md animate-pulse" />
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
 
-            {/* Navigation links skeleton */}
-            <div className="space-y-1 pt-1">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div
-                  key={i}
-                  className="h-7 w-full bg-zinc-200/40 dark:bg-white/[0.03] rounded-md animate-pulse"
-                />
-              ))}
-            </div>
-          </div>
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
 
-          {/* User profile skeleton at bottom */}
-          <div className="pt-3 border-t border-[#e7e7e5] dark:border-white/[0.08] flex items-center justify-between px-1">
-            <div className="space-y-1">
-              <div className="h-3 w-20 bg-zinc-200 dark:bg-white/[0.06] rounded animate-pulse" />
-              <div className="h-2.5 w-14 bg-zinc-200/60 dark:bg-white/[0.03] rounded animate-pulse" />
-            </div>
-          </div>
-        </aside>
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileNavOpen]);
 
-        {/* Main Content Area Skeleton */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Header Skeleton */}
-          <header className="h-13 px-6 sm:px-8 border-b border-[#e7e7e5] dark:border-white/[0.08] bg-[#fbfbfa]/95 dark:bg-[#09090b]/95 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="h-4 w-28 bg-zinc-200 dark:bg-white/[0.08] rounded animate-pulse" />
-              <div className="h-3 w-44 bg-zinc-200/60 dark:bg-white/[0.04] rounded animate-pulse hidden md:block" />
-            </div>
-            <div className="h-7 w-16 bg-zinc-200/60 dark:bg-white/[0.05] rounded-md animate-pulse" />
-          </header>
-
-          {/* Content Placeholder */}
-          <main className="p-6 sm:p-8 space-y-8 max-w-7xl w-full mx-auto animate-pulse">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 pb-8 border-b border-[#e7e7e5] dark:border-white/[0.08]">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="space-y-2">
-                  <div className="h-2.5 w-16 bg-zinc-200/60 dark:bg-white/[0.04] rounded" />
-                  <div className="h-6 w-20 bg-zinc-200 dark:bg-white/[0.08] rounded" />
-                  <div className="h-2.5 w-24 bg-zinc-200/40 dark:bg-white/[0.03] rounded" />
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-3">
-              <div className="h-4 w-32 bg-zinc-200 dark:bg-white/[0.08] rounded" />
-              <div className="h-48 w-full bg-zinc-200/40 dark:bg-white/[0.03] rounded-lg border border-[#e7e7e5]/60 dark:border-white/[0.04]" />
-            </div>
-          </main>
-        </div>
-
-        <div className="hidden" aria-hidden="true">
-          {children}
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="hidden" aria-hidden="true">
-        {children}
-      </div>
-    );
-  }
+  const toggleMobileNav = useCallback(() => setMobileNavOpen((prev) => !prev), []);
+  const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
 
   return (
-    <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden bg-[#fbfbfa] dark:bg-[#09090b] text-[#111111] dark:text-[#f4f4f5] font-sans">
-      <div className="md:hidden h-13 px-4 border-b border-[#e7e7e5] dark:border-white/[0.08] bg-[#fafaf9] dark:bg-[#09090b] flex items-center justify-between shrink-0">
-        <Link href="/dashboard" className="flex items-center gap-2 text-sm font-semibold tracking-tight text-[#111111] dark:text-white">
-          <span>Relay</span>
-          {project && (
-            <span className="text-[11px] text-zinc-500 ml-1 font-normal">
-              {project.name}
-            </span>
-          )}
-        </Link>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 rounded-md border border-[#e7e7e5] dark:border-white/[0.08] text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white bg-white dark:bg-[#121215]"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-          </button>
+    <DashboardShellContext.Provider
+      value={{
+        mobileNavOpen,
+        setMobileNavOpen,
+        toggleMobileNav,
+        closeMobileNav,
+      }}
+    >
+      <div className="h-screen w-full flex overflow-hidden bg-[#fbfbfa] dark:bg-[#09090b] text-[#111111] dark:text-[#f4f4f5] font-sans">
+        {isLoading && (
+          <div className="fixed top-0 inset-x-0 h-[2.5px] z-50 overflow-hidden pointer-events-none bg-zinc-200/30 dark:bg-white/[0.04]">
+            <div className="h-full w-1/2 bg-gradient-to-r from-transparent via-[#ff6600] to-transparent animate-shimmer-progress shadow-[0_0_10px_rgba(255,102,0,0.6)]" />
+          </div>
+        )}
+
+        <div className="hidden md:flex shrink-0">
+          <DashboardSidebar />
         </div>
-      </div>
 
-      <div className="hidden md:flex shrink-0">
-        <DashboardSidebar />
-      </div>
-
-      {mobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 z-50 bg-black/40 flex"
-          onClick={() => setMobileMenuOpen(false)}
+          className={`fixed inset-0 z-50 md:hidden transition-all duration-200 ${mobileNavOpen ? "pointer-events-auto visible" : "pointer-events-none invisible"
+            }`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Mobile Navigation"
         >
           <div
-            className="w-56 max-w-[80%] h-full bg-[#fafaf9] dark:bg-[#09090b] border-r border-[#e7e7e5] dark:border-white/[0.08]"
-            onClick={(e) => e.stopPropagation()}
+            className={`fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-200 ${mobileNavOpen ? "opacity-100" : "opacity-0"
+              }`}
+            onClick={closeMobileNav}
+          />
+          <div
+            className={`relative z-10 w-56 max-w-[80vw] h-full bg-[#fafaf9] dark:bg-[#09090b] border-r border-[#e7e7e5] dark:border-white/[0.08] shadow-2xl transition-transform duration-200 ease-out transform ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+              }`}
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest("a")) {
+                closeMobileNav();
+              }
+            }}
           >
+            <div className="absolute top-3.5 right-3 z-20">
+              <button
+                type="button"
+                onClick={closeMobileNav}
+                className="p-1 rounded-md text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-200/60 dark:hover:bg-white/[0.06] transition-colors"
+                aria-label="Close navigation"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             <DashboardSidebar />
           </div>
         </div>
-      )}
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#fbfbfa] dark:bg-[#09090b]">
-        {children}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#fbfbfa] dark:bg-[#09090b]">
+          {children}
+        </div>
       </div>
-    </div>
+    </DashboardShellContext.Provider>
   );
 }
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <DashboardAuthGuard>{children}</DashboardAuthGuard>
+      <DashboardShellContent>{children}</DashboardShellContent>
     </AuthProvider>
   );
 }
