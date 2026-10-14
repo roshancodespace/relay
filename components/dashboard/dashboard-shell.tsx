@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { AuthProvider, useAuth } from "@/components/auth/auth-context";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
@@ -19,10 +19,36 @@ export function useDashboardShell() {
   return useContext(DashboardShellContext);
 }
 
+function MobileNavRouteWatcher({ onClose }: { onClose: () => void }) {
+  const pathname = usePathname();
+  useEffect(() => {
+    onClose();
+  }, [pathname, onClose]);
+  return null;
+}
+
+function SidebarFallback() {
+  return (
+    <aside className="w-56 shrink-0 border-r border-[#e7e7e5] dark:border-white/[0.08] bg-[#fafaf9] dark:bg-[#09090b] flex flex-col justify-between h-screen font-sans p-4">
+      <div className="space-y-5">
+        <div className="h-4 w-14 bg-zinc-200 dark:bg-white/[0.08] rounded animate-pulse" />
+        <div className="h-8 w-full bg-zinc-200/50 dark:bg-white/[0.04] rounded-md animate-pulse" />
+        <div className="space-y-1 pt-1">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-7 w-full bg-zinc-200/40 dark:bg-white/[0.03] rounded-md animate-pulse" />
+          ))}
+        </div>
+      </div>
+      <div className="pt-3 border-t border-[#e7e7e5] dark:border-white/[0.08]">
+        <div className="h-3 w-20 bg-zinc-200 dark:bg-white/[0.06] rounded animate-pulse" />
+      </div>
+    </aside>
+  );
+}
+
 function DashboardShellContent({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
@@ -30,10 +56,6 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       router.push("/login");
     }
   }, [user, isLoading, router]);
-
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -64,6 +86,10 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
         closeMobileNav,
       }}
     >
+      <Suspense fallback={null}>
+        <MobileNavRouteWatcher onClose={closeMobileNav} />
+      </Suspense>
+
       <div className="h-screen w-full flex overflow-hidden bg-[#fbfbfa] dark:bg-[#09090b] text-[#111111] dark:text-[#f4f4f5] font-sans">
         {isLoading && (
           <div className="fixed top-0 inset-x-0 h-[2.5px] z-50 overflow-hidden pointer-events-none bg-zinc-200/30 dark:bg-white/[0.04]">
@@ -72,7 +98,9 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
         )}
 
         <div className="hidden md:flex shrink-0">
-          <DashboardSidebar />
+          <Suspense fallback={<SidebarFallback />}>
+            <DashboardSidebar />
+          </Suspense>
         </div>
 
         <div
@@ -106,7 +134,9 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <DashboardSidebar />
+            <Suspense fallback={<SidebarFallback />}>
+              <DashboardSidebar />
+            </Suspense>
           </div>
         </div>
 
